@@ -42,9 +42,14 @@ describe('nightly digest routes', () => {
     expect(api.status).toBe(200);
     const html = await page.text();
     expect(html).toMatch(/<td[^>]*>alpha<\/td>\s*<td[^>]*>—<\/td>/u);
-    const pageJobs = [...html.matchAll(/<td[^>]*>(alpha|zebra)<\/td>/gu)].map((match) => match[1]);
     const rows = (await api.json()) as DigestRow[];
-    expect(pageJobs).toEqual(rows.map(({ job }) => job));
+    const pageRows = [...html.matchAll(/<tr>(.*?)<\/tr>/gsu)]
+      .map((match) => [...match[1].matchAll(/<td[^>]*>(.*?)<\/td>/gu)].map((cell) => cell[1]))
+      .filter((cells) => cells.length > 0);
+    expect(pageRows).toEqual(rows.map((row) => [
+      row.job, row.owner ?? '—', String(row.runs), String(row.retries),
+      row.lastStatus, row.lastError ?? '—', row.firstAt, row.lastAt,
+    ]));
     expect(rows.map(({ job, owner }) => ({ job, owner }))).toEqual([
       { job: 'alpha', owner: null },
       { job: 'zebra', owner: 'sam' },
