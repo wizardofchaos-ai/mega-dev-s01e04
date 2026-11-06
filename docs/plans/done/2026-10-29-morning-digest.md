@@ -1,8 +1,9 @@
 ---
 plan: morning-digest
-status: ready
+status: done
 owner: rook
 opened: 2026-10-29
+closed: 2026-11-06
 ---
 
 # Morning digest
@@ -77,3 +78,15 @@ page again with `LANE_MARKER` unset (the banner reads "no marker set") and uploa
 link. Move this plan to `docs/plans/done/` with its issue list.
 
 Done when: the preview link no longer shows the lane marker.
+
+## Issues
+
+| # | Issue | Blocked by |
+|---|-------|------------|
+| 1 | [Read and aggregate nightly run logs](https://github.com/wizardofchaos-ai/mega-dev-s01e04/issues/1) | — |
+| 2 | [Render the nightly digest page](https://github.com/wizardofchaos-ai/mega-dev-s01e04/issues/2) | #1 |
+| 3 | [Expose the same digest rows as JSON](https://github.com/wizardofchaos-ai/mega-dev-s01e04/issues/3) | #1 |
+| 4 | [Link the status board to each nightly digest](https://github.com/wizardofchaos-ai/mega-dev-s01e04/issues/4) | #1 |
+| 5 | [Test both digest routes](https://github.com/wizardofchaos-ai/mega-dev-s01e04/issues/5) | #1 |
+| 6 | [Publish and submit the marked HTML preview](https://github.com/wizardofchaos-ai/mega-dev-s01e04/issues/6) | #1–#5 |
+| 7 | [Replace the preview without the marker and archive the plan](https://github.com/wizardofchaos-ai/mega-dev-s01e04/issues/7) | #6 |
