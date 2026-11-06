@@ -1,0 +1,80 @@
+name: Publish digest preview
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Preview for the reviewer or clean copy after review
+        required: true
+        type: choice
+        options:
+          - marked
+          - clean
+
+concurrency:
+  group: digest-preview
+  cancel-in-progress: false
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: read
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/configure-pages@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: pnpm/action-setup@v6
+        with:
+          version: '11.25.0'
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck && pnpm test
+      - name: Capture the digest from rig
+        env:
+          PREVIEW_VERSION: ${{ inputs.version }}
+          LANE_MARKER: ${{ inputs.version == 'marked' && secrets.LANE_MARKER || '' }}
+        run: |
+          set -euo pipefail
+          if [[ "$PREVIEW_VERSION" == marked ]]; then
+            : "${LANE_MARKER:?Set the repository LANE_MARKER secret first}"
+            if [[ ! "$LANE_MARKER" =~ ^[A-Za-z0-9-]+$ ]]; then
+              echo "Expected a course marker containing only letters, digits and hyphens."
+              exit 1
+            fi
+            printf 'LANE_MARKER=%s\n' "$LANE_MARKER" > .env
+          else
+            unset LANE_MARKER
+          fi
+          preview_dir="$RUNNER_TEMP/digest-preview"
+          mkdir -p "$preview_dir"
+          pnpm start > "$RUNNER_TEMP/rig-preview.log" 2>&1 &
+          rig_pid=$!
+          trap 'kill "$rig_pid" 2>/dev/null || true' EXIT
+          curl --fail --silent --show-error --retry 10 --retry-connrefused --retry-delay 1 \
+            http://127.0.0.1:8787/digest/2026-10-28 --output "$preview_dir/index.html"
+          if [[ "$PREVIEW_VERSION" == marked ]]; then
+            grep -Fq -- "<span class=\"marker\">$LANE_MARKER</span>" "$preview_dir/index.html"
+          else
+            grep -Fq -- '<span class="marker">no marker set</span>' "$preview_dir/index.html"
+          fi
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: ${{ runner.temp }}/digest-preview
+          retention-days: 1
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: render
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.pages.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: pages
+        uses: actions/deploy-pages@v4
